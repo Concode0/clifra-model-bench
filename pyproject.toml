@@ -1,0 +1,28 @@
+[project]
+name = "clifra-model-bench"
+version = "0.1.0"
+description = "Paired GCA-MLP benchmark for cliffordlayers and Clifra"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "cliffordlayers",
+    "clifra",
+    "numpy>=2.5.3",
+    "torch>=2.14.0",
+]
+
+[tool.uv.sources]
+clifra = { path = "../clifra", editable = true }
+cliffordlayers = { git = "https://github.com/microsoft/cliffordlayers.git", rev = "74799cf4588a065916305bfcf2f030d84918f0ad" }
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.7",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
