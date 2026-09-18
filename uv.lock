@@ -12,37 +12,15 @@ dependencies = [
 
 [[package]]
 name = "clifra"
-version = "2.0.1"
-source = { editable = "../clifra" }
+version = "2.0.3"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "setuptools" },
     { name = "torch" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "setuptools" },
-    { name = "torch", specifier = ">=2.4.0" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.155.7" },
-    { name = "pytest", specifier = ">=7.0.0" },
-    { name = "pytest-xdist", specifier = ">=3.8.0" },
-    { name = "ruff", specifier = ">=0.8.0" },
-]
-docs = [
-    { name = "mkdocs", specifier = "<2.0" },
-    { name = "mkdocs-material", specifier = ">=9.7.4" },
-    { name = "mkdocstrings", extras = ["python"], specifier = ">=0.30.1" },
-    { name = "pymdown-extensions", specifier = ">=10.21" },
-]
-viz = [
-    { name = "imageio", specifier = ">=2.37.0" },
-    { name = "matplotlib", specifier = ">=3.9.0" },
-    { name = "numpy", specifier = ">=2.0.0" },
-    { name = "vtk", specifier = ">=9.4.0" },
+sdist = { url = "https://files.pythonhosted.org/packages/fa/d6/fdef78ee3de734af3e90d6dc415afb675d906c91695d73cd8a6924923167/clifra-2.0.3.tar.gz", hash = "sha256:9665c18389dd487ed92ae75c218c04c037655ea9b041b81275436d073b790d87", size = 87012, upload-time = "2026-09-16T01:48:44.7Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/09/c3/4aa3cc64167bce2673aac4c9774d9b5e5b730bc397d4469a7b9f16f740fa/clifra-2.0.3-py3-none-any.whl", hash = "sha256:c23d609970b06a571fc0fb015940d4c7f865a1f14bc59ee49de7560f2a78ad51", size = 109294, upload-time = "2026-09-16T01:48:42.838Z" },
 ]
 
 [[package]]
@@ -64,7 +42,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cliffordlayers", git = "https://github.com/microsoft/cliffordlayers.git?rev=74799cf4588a065916305bfcf2f030d84918f0ad" },
-    { name = "clifra", editable = "../clifra" },
+    { name = "clifra", specifier = ">=2.0.3" },
     { name = "numpy", specifier = ">=2.5.3" },
     { name = "torch", specifier = ">=2.14.0" },
 ]
