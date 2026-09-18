@@ -7,10 +7,12 @@ import argparse
 import contextlib
 import math
 import platform
+import dataclasses
 import statistics
 import subprocess
 import sys
 import time
+from collections.abc import Callable
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -18,6 +20,14 @@ import torch
 
 from clifra_model import ClifraGCAMLP
 from reference import ReferenceGCAMLP
+
+
+@dataclasses.dataclass
+class BenchmarkTarget:
+    name: str
+    model: torch.nn.Module
+    to_model_domain: Callable[[torch.Tensor], torch.Tensor] = lambda x: x
+    to_standard_domain: Callable[[torch.Tensor], torch.Tensor] = lambda x: x
 
 
 class ConventionAdapter:
@@ -207,18 +217,21 @@ def assert_finite_backward(name: str, model: torch.nn.Module, inputs: torch.Tens
 
 
 def validate_correctness(
-    models: dict[str, torch.nn.Module],
+    targets: list[BenchmarkTarget],
     inputs: dict[str, torch.Tensor],
-    adapter: ConventionAdapter,
+    adapter: ConventionAdapter | None,
     expected_shape: tuple[int, ...],
 ) -> None:
     print("\n=== Correctness ===")
-    roundtrip = adapter.to_reference(adapter.to_clifra(inputs["reference"]))
-    torch.testing.assert_close(roundtrip, inputs["reference"], rtol=0.0, atol=0.0)
-    print("convention roundtrip: PASS")
+    if adapter is not None and "reference" in inputs:
+        roundtrip = adapter.to_reference(adapter.to_clifra(inputs["reference"]))
+        torch.testing.assert_close(roundtrip, inputs["reference"], rtol=0.0, atol=0.0)
+        print("convention roundtrip: PASS")
 
     outputs = {}
-    for name, model in models.items():
+    for target in targets:
+        name = target.name
+        model = target.model
         output = model(inputs[name])
         if output.shape != expected_shape:
             raise AssertionError(f"{name}: got shape {tuple(output.shape)}, expected {expected_shape}")
@@ -228,13 +241,24 @@ def validate_correctness(
         outputs[name] = output.detach()
         print(f"{name}: shape, finite forward, finite backward PASS")
 
-    if set(models) == {"reference", "clifra"}:
-        # Validate each transferred primitive independently, not only the composed network.
+    # Check whole-model equivalence between the first target and the rest in standard domain
+    if len(targets) > 1:
+        base_target = targets[0]
+        base_standard_output = base_target.to_standard_domain(outputs[base_target.name])
+        for target in targets[1:]:
+            standard_output = target.to_standard_domain(outputs[target.name])
+            whole_error = float((base_standard_output - standard_output).abs().max().detach().cpu())
+            torch.testing.assert_close(standard_output, base_standard_output, rtol=1e-3, atol=1e-4)
+            print(f"{target.name} matches {base_target.name} standard-domain output: PASS (max={whole_error:.3e})")
+
+    # Legacy per-layer validation specific to reference vs clifra
+    models_dict = {t.name: t.model for t in targets}
+    if adapter is not None and set(models_dict) == {"reference", "clifra"} and "reference" in inputs:
         generator = torch.Generator(device="cpu").manual_seed(1729)
         max_linear_error = 0.0
         max_activation_error = 0.0
         for reference_layer, clifra_layer in zip(
-            models["reference"].linears, models["clifra"].linears
+            models_dict["reference"].linears, models_dict["clifra"].linears
         ):
             source = torch.randn(3, reference_layer.in_features, 16, generator=generator).to(
                 inputs["reference"].device
@@ -246,10 +270,10 @@ def validate_correctness(
             )
             torch.testing.assert_close(actual, expected, rtol=5e-4, atol=5e-5)
         for reference_activation, clifra_activation in zip(
-            models["reference"].activations, models["clifra"].activations
+            models_dict["reference"].activations, models_dict["clifra"].activations
         ):
             source = torch.randn(
-                3, models["reference"].linears[0].out_features, 16, generator=generator
+                3, models_dict["reference"].linears[0].out_features, 16, generator=generator
             ).to(inputs["reference"].device)
             expected = adapter.to_clifra(reference_activation(source))
             actual = clifra_activation(adapter.to_clifra(source))
@@ -257,14 +281,11 @@ def validate_correctness(
                 max_activation_error, float((expected - actual).abs().max().detach().cpu())
             )
             torch.testing.assert_close(actual, expected, rtol=5e-4, atol=5e-5)
-        converted = adapter.to_reference(outputs["clifra"])
-        whole_error = float((outputs["reference"] - converted).abs().max().detach().cpu())
-        torch.testing.assert_close(converted, outputs["reference"], rtol=1e-3, atol=1e-4)
         print(
             "transferred layer equivalence: PASS "
             f"(linear max={max_linear_error:.3e}, activation max={max_activation_error:.3e})"
         )
-        print(f"transferred whole-model equivalence: PASS (max={whole_error:.3e})")
+
     print(
         "equivariance: not asserted; upstream documents GCA-MLP as using PGA "
         "representations but not E(3)-equivariant"
@@ -279,14 +300,16 @@ def execute_once(model: torch.nn.Module, inputs: torch.Tensor, mode: str) -> tor
 
 
 def compile_for_mode(
-    models: dict[str, torch.nn.Module],
+    targets: list[BenchmarkTarget],
     inputs: dict[str, torch.Tensor],
     mode: str,
     device: torch.device,
-) -> dict[str, torch.nn.Module]:
-    compiled = {}
+) -> list[BenchmarkTarget]:
+    compiled = []
     print(f"\n=== torch.compile preparation: {mode} ===")
-    for name, model in models.items():
+    for target in targets:
+        name = target.name
+        model = target.model
         try:
             start = time.perf_counter_ns()
             candidate = torch.compile(model)
@@ -303,7 +326,7 @@ def compile_for_mode(
             synchronize(device)
             first_ms = (time.perf_counter_ns() - start) / 1e6
             torch.testing.assert_close(actual.detach(), expected, rtol=1e-3, atol=1e-4)
-            compiled[name] = candidate
+            compiled.append(dataclasses.replace(target, model=candidate))
             print(
                 f"{name}: compile API={api_ms:.3f} ms, first call={first_ms:.3f} ms, "
                 "output check=PASS"
@@ -317,22 +340,22 @@ def compile_for_mode(
 
 
 def timed_samples(
-    models: dict[str, torch.nn.Module],
+    targets: list[BenchmarkTarget],
     inputs: dict[str, torch.Tensor],
     mode: str,
     warmup: int,
     iterations: int,
     device: torch.device,
 ) -> dict[str, list[float]]:
-    samples = {name: [] for name in models}
-    names = list(models)
+    samples = {target.name: [] for target in targets}
     context = torch.inference_mode() if mode == "forward" else contextlib.nullcontext()
     with context:
         for phase_iterations, record in ((warmup, False), (iterations, True)):
             for iteration in range(phase_iterations):
-                order = names if iteration % 2 == 0 else list(reversed(names))
-                for name in order:
-                    model = models[name]
+                order = targets if iteration % 2 == 0 else list(reversed(targets))
+                for target in order:
+                    name = target.name
+                    model = target.model
                     if mode == "backward":
                         model.zero_grad(set_to_none=True)
                         inputs[name].grad = None
@@ -343,9 +366,9 @@ def timed_samples(
                     elapsed_ms = (time.perf_counter_ns() - start) / 1e6
                     if record:
                         samples[name].append(elapsed_ms)
-    for name, model in models.items():
-        model.zero_grad(set_to_none=True)
-        inputs[name].grad = None
+    for target in targets:
+        target.model.zero_grad(set_to_none=True)
+        inputs[target.name].grad = None
     return samples
 
 
@@ -403,25 +426,38 @@ def main() -> None:
     adapter = ConventionAdapter(reference.pga, clifra.algebra)
     transfer_reference_to_clifra(reference, clifra, adapter)
 
-    all_models = {"reference": reference, "clifra": clifra}
+    all_targets = {
+        "reference": BenchmarkTarget(
+            name="reference",
+            model=reference.to(device)
+        ),
+        "clifra": BenchmarkTarget(
+            name="clifra",
+            model=clifra.to(device),
+            to_model_domain=adapter.to_clifra,
+            to_standard_domain=adapter.to_reference
+        )
+    }
+
     selected_names = ["clifra", "reference"] if args.backend == "both" else [args.backend]
-    models = {name: all_models[name].to(device) for name in selected_names}
-    counts = {name: parameter_count(model) for name, model in models.items()}
+    targets = [all_targets[name] for name in selected_names]
+    counts = {t.name: parameter_count(t.model) for t in targets}
     if len(set(counts.values())) != 1:
         raise AssertionError(f"parameter counts differ: {counts}")
 
-    reference_input = torch.randn(
+    standard_input = torch.randn(
         args.batch, args.items, args.in_channels, 16, device=device, dtype=torch.float32
     )
-    clifra_input = adapter.to_clifra(reference_input)
+
+    # Precompute inputs for each target in their respective domain
     inputs = {
-        "reference": reference_input.detach().requires_grad_(True),
-        "clifra": clifra_input.detach().requires_grad_(True),
+        target.name: target.to_model_domain(standard_input).detach().requires_grad_(True)
+        for target in targets
     }
 
     print_provenance(args, device, counts)
     validate_correctness(
-        models,
+        targets,
         inputs,
         adapter,
         (args.batch, args.items, args.out_channels, 16),
@@ -429,15 +465,15 @@ def main() -> None:
 
     modes = ["forward", "backward"] if args.mode == "both" else [args.mode]
     for mode in modes:
-        measured_models = models
+        measured_targets = targets
         if args.compile:
-            measured_models = compile_for_mode(models, inputs, mode, device)
-            if not measured_models:
+            measured_targets = compile_for_mode(targets, inputs, mode, device)
+            if not measured_targets:
                 print(f"No backend compiled successfully for {mode}; eager correctness remains valid.")
                 continue
         samples = timed_samples(
-            measured_models,
-            {name: inputs[name] for name in measured_models},
+            measured_targets,
+            inputs,
             mode,
             args.warmup,
             args.iters,
