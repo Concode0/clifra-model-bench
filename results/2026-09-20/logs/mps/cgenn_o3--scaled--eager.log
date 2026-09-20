@@ -1,0 +1,51 @@
+$ uv run --locked benchmark.py --model cgenn --variant o3 --batch 4 --hidden-features 32 --layers 4 --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=o3, signature=(3,0), batch=4, nodes/graph=n/a, options={'hidden_features': 32, 'num_layers': 4}, eval=True
+parameter counts: reference=8,145, clifra=8,145
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (8,145 scalars; 16 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 16 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference       8.382      8.527      8.745      8.948        457.4      1,372.2      8,145
+clifra          4.529      4.702      4.810      4.964        831.6      2,494.9      8,145
+speed ratio reference_median / clifra_median = 1.818
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference      27.635     30.994     36.518     45.382        109.5        328.6      8,145
+clifra         21.813     23.736     28.872     36.518        138.5        415.6      8,145
+speed ratio reference_median / clifra_median = 1.265
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

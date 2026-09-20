@@ -1,0 +1,59 @@
+$ uv run --locked benchmark.py --model cgenn --variant o5_regression --device cpu --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: cpu
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=o5_regression, signature=(5,0), batch=2, nodes/graph=n/a, options={}, eval=True
+parameter counts: reference=344,077, clifra=344,077
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (344,077 scalars; 13 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 13 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=370.978 ms, first call=5699.780 ms, output check=PASS, graphs=8, graph_breaks=7, recompile_limit_warning=False
+clifra: compile API=0.588 ms, first call=1223.234 ms, output check=PASS, graphs=7, graph_breaks=3, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference       0.498      0.531      0.556      0.576      3,599.4      7,198.8    344,077
+clifra          0.364      0.373      0.406      0.440      4,922.3      9,844.6    344,077
+speed ratio reference_median / clifra_median = 1.368
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=0.460 ms, first call=8120.051 ms, output/gradients check=PASS, graphs=8, graph_breaks=7, recompile_limit_warning=False
+clifra: compile API=0.696 ms, first call=3815.969 ms, output/gradients check=PASS, graphs=7, graph_breaks=3, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference       1.123      1.175      1.232      1.327      1,623.4      3,246.9    344,077
+clifra          1.160      1.305      1.350      1.449      1,481.3      2,962.6    344,077
+speed ratio reference_median / clifra_median = 0.912
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

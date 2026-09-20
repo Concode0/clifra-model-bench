@@ -1,0 +1,60 @@
+$ uv run --locked benchmark.py --model clifford_fno2d --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_fno2d g=(2,0), batch=1, grid=32x32, channels=1/1, hidden=4, blocks=2, modes=(16,16), norm=False, rotation=False, padding=9
+parameter counts: reference=131,280, clifra=131,280
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis/convention roundtrip: PASS (identical [1,e1,e2,e12] order)
+parameter correspondence: PASS (131,280 scalars)
+Fourier dual-pair roundtrip: PASS
+spectral mode selection: PASS
+encoder equivalence: PASS
+decoder equivalence: PASS
+local CliffordConv2d equivalence: PASS
+spectral convolution equivalence: PASS
+Fourier block equivalence: PASS
+spectral input and 1 parameter gradient: PASS
+whole-model output, input and 21 parameter gradients: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=304.877 ms, first call=419.436 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+clifra: compile API=0.604 ms, first call=124.078 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference       1.596      1.615      1.633      1.660        612.3    626,954.8    131,280
+clifra          1.344      1.381      1.395      1.448        716.7    733,885.8    131,280
+speed ratio reference_median / clifra_median = 1.171
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=0.496 ms, first call=218.562 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+clifra: compile API=0.440 ms, first call=120.634 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference       3.579      3.683      3.794      3.930        263.6    269,876.1    131,280
+clifra          3.554      3.831      3.956      4.150        252.8    258,843.2    131,280
+speed ratio reference_median / clifra_median = 0.959
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

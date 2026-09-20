@@ -1,0 +1,63 @@
+$ uv run --locked benchmark.py --model clifford_fno3d --grid 20 --hidden-channels 4 --blocks 3 --modes 8 --device cpu --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: cpu
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_fno3d g=(3,0), batch=1, grid=20^3, channels=1/1, hidden=4, blocks=3, modes=(8,8,8), norm=False, padding=2, boundary=vector+bivector
+parameter counts: reference=1,573,440, clifra=1,573,440
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+full and vector+bivector convention roundtrips: PASS
+parameter correspondence: PASS (1,573,440 scalars)
+3D Fourier pair/unpair: PASS
+3D spectral mode selection: PASS
+Fourier-space geometric-product kernel: PASS
+Maxwell encoder equivalence: PASS
+Maxwell decoder equivalence: PASS
+CliffordConv3d equivalence: PASS
+spectral convolution equivalence: PASS
+Fourier block equivalence: PASS
+spectral input and 1 parameter gradients: PASS
+whole-model output, input and 47 parameter gradients: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=304.743 ms, first call=17500.241 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+clifra: compile API=0.643 ms, first call=9643.321 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference      15.234     16.045     16.277     17.095         61.4    491,486.7  1,573,440
+clifra          9.768      9.922     10.043     10.430         99.6    796,592.9  1,573,440
+speed ratio reference_median / clifra_median = 1.621
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=0.716 ms, first call=85428.372 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+clifra: compile API=0.738 ms, first call=78492.757 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference      36.355     37.201     37.492     38.235         26.7    213,380.3  1,573,440
+clifra         31.953     33.081     33.486     33.730         29.9    238,902.7  1,573,440
+speed ratio reference_median / clifra_median = 1.120
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/_inductor/lowering.py:2774: UserWarning: Torchinductor does not support code generation for complex operators. Performance may be worse than eager.
+  warnings.warn(
+
+exit_code=0

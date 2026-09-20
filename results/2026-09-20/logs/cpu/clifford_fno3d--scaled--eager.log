@@ -1,0 +1,53 @@
+$ uv run --locked benchmark.py --model clifford_fno3d --grid 20 --hidden-channels 4 --blocks 3 --modes 8 --device cpu --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: cpu
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_fno3d g=(3,0), batch=1, grid=20^3, channels=1/1, hidden=4, blocks=3, modes=(8,8,8), norm=False, padding=2, boundary=vector+bivector
+parameter counts: reference=1,573,440, clifra=1,573,440
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+full and vector+bivector convention roundtrips: PASS
+parameter correspondence: PASS (1,573,440 scalars)
+3D Fourier pair/unpair: PASS
+3D spectral mode selection: PASS
+Fourier-space geometric-product kernel: PASS
+Maxwell encoder equivalence: PASS
+Maxwell decoder equivalence: PASS
+CliffordConv3d equivalence: PASS
+spectral convolution equivalence: PASS
+Fourier block equivalence: PASS
+spectral input and 1 parameter gradients: PASS
+whole-model output, input and 47 parameter gradients: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference      48.310     51.314     54.069     57.300         18.5    147,958.4  1,573,440
+clifra         47.233     50.325     51.673     57.127         19.4    154,820.4  1,573,440
+speed ratio reference_median / clifra_median = 1.046
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference     160.403    170.247    176.260    182.475          5.7     45,387.5  1,573,440
+clifra        122.480    126.399    130.273    134.815          7.7     61,409.4  1,573,440
+speed ratio reference_median / clifra_median = 1.353
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

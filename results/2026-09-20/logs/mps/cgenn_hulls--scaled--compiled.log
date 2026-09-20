@@ -1,0 +1,60 @@
+$ uv run --locked benchmark.py --model cgenn --variant hulls --batch 4 --hidden-features 16 --layers 4 --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=hulls, signature=(5,0), batch=4, nodes/graph=n/a, options={'hidden_features': 16, 'num_layers': 4}, eval=True
+parameter counts: reference=16,881, clifra=16,881
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (16,881 scalars; 26 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 26 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=362.864 ms, first call=1698.812 ms, output check=PASS, graphs=11, graph_breaks=9, recompile_limit_warning=False
+clifra: compile API=0.505 ms, first call=776.905 ms, output check=PASS, graphs=9, graph_breaks=4, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference      10.668     11.081     11.470     11.742        348.7      5,579.7     16,881
+clifra          5.459      5.745      6.021      6.169        664.3     10,629.6     16,881
+speed ratio reference_median / clifra_median = 1.905
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=0.523 ms, first call=2642.763 ms, output/gradients check=PASS, graphs=11, graph_breaks=8, recompile_limit_warning=False
+clifra: compile API=0.409 ms, first call=1486.255 ms, output/gradients check=PASS, graphs=9, graph_breaks=4, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference      15.057     15.551     15.641     15.726        255.7      4,091.9     16,881
+clifra         12.743     13.004     13.114     13.321        305.0      4,880.2     16,881
+speed ratio reference_median / clifra_median = 1.193
+> 1.0 = Clifra faster; < 1.0 = reference faster
+W0920 19:57:44.492000 98703 .venv/lib/python3.12/site-packages/torch/_inductor/utils.py:1806] [1/0] Not enough SMs to use max_autotune_gemm mode
+
+exit_code=0

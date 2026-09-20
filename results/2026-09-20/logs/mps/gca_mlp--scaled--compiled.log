@@ -1,0 +1,57 @@
+$ uv run --locked benchmark.py --model gca_mlp --batch 8 --items 128 --hidden-channels 64 --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Qualcomm GATr 6afc26f26b8fcf51136ae8c1d264a36e14b6e497; faithful GCA wrapper over cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad primitives
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gca_mlp in=8, out=8, hidden=64, hidden_layers=3, act_agg=linear, flatten=False, batch=8, items=128
+parameter counts: clifra=86,408, reference=86,408
+execution: compiled, mode=both
+
+=== Correctness ===
+clifra: finite forward, finite backward PASS
+reference: finite forward, finite backward PASS
+convention roundtrip: PASS
+transferred whole-model equivalence: PASS (max=4.098e-08)
+transferred layer equivalence: PASS (linear max=1.907e-06, activation max=3.576e-07)
+corresponding input and all parameter gradients: PASS
+equivariance: not asserted; upstream documents GCA-MLP as using PGA representations but not E(3)-equivariant
+
+=== torch.compile preparation: forward ===
+clifra: compile API=365.610 ms, first call=1047.052 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+reference: compile API=0.564 ms, first call=1330.293 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s         MV/s     params
+clifra          1.569      1.590      1.619      1.673      4,941.6  5,060,240.1     86,408
+reference       4.113      4.183      4.226      4.266      1,893.2  1,938,629.1     86,408
+speed ratio reference_median / clifra_median = 2.610
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+clifra: compile API=0.451 ms, first call=1424.893 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+reference: compile API=0.485 ms, first call=2808.936 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s         MV/s     params
+clifra          4.482      4.585      4.636      4.696      1,725.5  1,766,953.1     86,408
+reference      11.025     11.126     11.225     11.269        712.7    729,771.1     86,408
+speed ratio reference_median / clifra_median = 2.421
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/cliffordlayers/basisbladeorder.py:116: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /Users/runner/work/pytorch/pytorch/aten/src/ATen/Context.cpp:855.)
+  return torch.sparse_coo_tensor(indices=coords, values=mult_table_vals, size=(n, n, n))
+W0920 19:54:21.506000 97800 .venv/lib/python3.12/site-packages/torch/_inductor/utils.py:1806] [0/0] Not enough SMs to use max_autotune_gemm mode
+
+exit_code=0

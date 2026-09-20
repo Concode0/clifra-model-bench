@@ -1,0 +1,48 @@
+$ uv run --locked benchmark.py --model clifford_resnet2d --grid 48 --hidden-channels 8 --blocks 3 --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad (MPS triangular-solve layout patch)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_resnet2d g=(2,0), batch=1, grid=48x48, channels=1/1, hidden=8, blocks=3, norm=True, rotation=False, padding=9
+parameter counts: reference=15,072, clifra=15,072
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis/convention roundtrip: PASS (identical [1,e1,e2,e12] order)
+parameter correspondence: PASS (15,072 scalars)
+encoder equivalence: PASS
+decoder equivalence: PASS
+conv2d equivalence: PASS
+basic block equivalence: PASS
+whole-model output, input and 51 parameter gradients: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference       3.790      4.144      4.365      4.772        229.1    527,774.6     15,072
+clifra          3.511      3.658      3.903      4.368        256.2    590,290.0     15,072
+speed ratio reference_median / clifra_median = 1.118
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+reference       7.516      7.745      7.886      8.151        126.8    292,163.3     15,072
+clifra          7.120      7.285      7.416      7.536        134.8    310,663.9     15,072
+speed ratio reference_median / clifra_median = 1.063
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

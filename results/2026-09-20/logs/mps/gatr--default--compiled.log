@@ -1,0 +1,64 @@
+$ uv run --locked benchmark.py --model gatr --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+attention backend: PyTorch SDPA (reference and Clifra)
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+gatr: 1.4.2
+einops: 0.8.2
+opt-einsum: 3.4.0
+xformers: not installed
+reference source: Qualcomm GATr commit 6afc26f26b8fcf51136ae8c1d264a36e14b6e497 (installed official package; changelog 1.4.3, package __version__ 1.4.2)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gatr batch=2, items=8, MV=2/4/2, scalar=2/4/2, blocks=2, heads=2, attention=PyTorch SDPA
+parameter counts: reference=6,140, clifra=6,140
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+convention roundtrip: PASS
+full-model MV/scalar output equivalence: PASS
+primitive, Q/K/V, MLP, and one-block equivalence: PASS
+MV/scalar input and all 110 parameter gradients: PASS
+rotations, translations, reflection: MV equivariance, scalar invariance PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=292.486 ms, first call=3835.336 ms, output check=PASS, graphs=10, graph_breaks=5, recompile_limit_warning=False
+clifra: compile API=0.475 ms, first call=365.950 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+reference       3.708      3.813      4.107      4.418        487.0      3,895.7      7,791.4      6,140
+clifra          2.025      2.122      2.299      2.394        870.0      6,959.6     13,919.2      6,140
+speed ratio reference_median / clifra_median = 1.786
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: COMPILE FAILED: AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 402 / 512 (78.5%)
+Greatest absolute difference: 10.570682525634766 at index (0, 7, 0, 14) (up to 0.0001 allowed)
+Greatest relative difference: 125471.6328125 at index (0, 3, 1, 14) (up to 0.001 allowed)
+clifra: compile API=0.368 ms, first call=371.021 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+clifra          5.028      5.104      5.140      5.354        389.1      3,112.9      6,225.9      6,140
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+W0920 19:59:51.979000 99138 .venv/lib/python3.12/site-packages/torch/_inductor/utils.py:1806] [5/0_1] Not enough SMs to use max_autotune_gemm mode
+
+exit_code=0

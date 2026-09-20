@@ -1,0 +1,51 @@
+$ uv run --locked benchmark.py --model cgenn --variant o3 --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=o3, signature=(3,0), batch=2, nodes/graph=n/a, options={'hidden_features': 16, 'num_layers': 3}, eval=True
+parameter counts: reference=2,945, clifra=2,945
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (2,945 scalars; 14 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 14 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference       7.820      8.039      8.242      8.488        242.7        728.0      2,945
+clifra          3.821      3.984      4.084      4.240        489.8      1,469.3      2,945
+speed ratio reference_median / clifra_median = 2.018
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     points/s     params
+reference      26.768     31.086     34.297     50.815         58.3        174.9      2,945
+clifra         20.407     26.315     28.527     41.308         70.1        210.3      2,945
+speed ratio reference_median / clifra_median = 1.202
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

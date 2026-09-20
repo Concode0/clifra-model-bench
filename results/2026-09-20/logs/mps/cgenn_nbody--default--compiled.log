@@ -1,0 +1,74 @@
+$ uv run --locked benchmark.py --model cgenn --variant nbody --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=nbody, signature=(3,0), batch=2, nodes/graph=4, options={'hidden_features': 8, 'n_layers': 2}, eval=True
+parameter counts: reference=9,025, clifra=9,025
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (9,025 scalars; 84 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 84 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=298.805 ms, first call=1297.465 ms, output check=PASS, graphs=26, graph_breaks=18, recompile_limit_warning=False
+clifra: compile API=0.406 ms, first call=753.812 ms, output check=PASS, graphs=23, graph_breaks=7, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      27.424     27.721     27.853     28.086         71.8        287.2        861.7      9,025
+clifra         13.713     14.044     14.137     14.255        141.5        565.9      1,697.6      9,025
+speed ratio reference_median / clifra_median = 1.970
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=0.458 ms, first call=968.924 ms, output/gradients check=PASS, graphs=15, graph_breaks=13, recompile_limit_warning=True
+clifra: compile API=0.484 ms, first call=672.312 ms, output/gradients check=PASS, graphs=15, graph_breaks=5, recompile_limit_warning=True
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      58.156     61.358     63.903     65.499         31.3        125.2        375.6      9,025
+clifra         47.140     47.973     49.914     51.480         40.1        160.3        480.8      9,025
+speed ratio reference_median / clifra_median = 1.280
+> 1.0 = Clifra faster; < 1.0 = reference faster
+W0920 19:58:07.702000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [4/8] torch._dynamo hit config.recompile_limit (8)
+W0920 19:58:07.702000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [4/8]    function: 'torch_dynamo_resume_in_forward_at_147' (/Users/haro/works/clifra-model-bench/models/cgenn/reference.py:147)
+W0920 19:58:07.702000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [4/8]    last reason: 4/7: GLOBAL_STATE changed: grad_mode 
+W0920 19:58:07.702000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [4/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0920 19:58:07.702000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [4/8] To diagnose recompilation issues, see https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.recompilation.html
+W0920 19:58:08.116000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] torch._dynamo hit config.recompile_limit (8)
+W0920 19:58:08.116000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8]    function: 'forward' (/Users/haro/works/clifra-model-bench/models/cgenn/reference.py:145)
+W0920 19:58:08.116000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8]    last reason: 1/7: tensor 'self._parameters['weight']' size mismatch at index 1. expected 8, actual 16. Guard failed on a parameter, consider using torch._dynamo.config.force_parameter_static_shapes = False to allow dynamism on parameters.
+W0920 19:58:08.116000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0920 19:58:08.116000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] To diagnose recompilation issues, see https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.recompilation.html
+W0920 19:58:09.230000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [19/8] torch._dynamo hit config.recompile_limit (8)
+W0920 19:58:09.230000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [19/8]    function: 'forward' (/Users/haro/works/clifra-model-bench/models/cgenn/clifra.py:79)
+W0920 19:58:09.230000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [19/8]    last reason: 19/7: tensor 'values' size mismatch at index 1. expected 8, actual 16
+W0920 19:58:09.230000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [19/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0920 19:58:09.230000 98772 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [19/8] To diagnose recompilation issues, see https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.recompilation.html
+
+exit_code=0

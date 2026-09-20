@@ -1,0 +1,54 @@
+$ uv run --locked benchmark.py --model gatr --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+attention backend: PyTorch SDPA (reference and Clifra)
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+gatr: 1.4.2
+einops: 0.8.2
+opt-einsum: 3.4.0
+xformers: not installed
+reference source: Qualcomm GATr commit 6afc26f26b8fcf51136ae8c1d264a36e14b6e497 (installed official package; changelog 1.4.3, package __version__ 1.4.2)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gatr batch=2, items=8, MV=2/4/2, scalar=2/4/2, blocks=2, heads=2, attention=PyTorch SDPA
+parameter counts: reference=6,140, clifra=6,140
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+convention roundtrip: PASS
+full-model MV/scalar output equivalence: PASS
+primitive, Q/K/V, MLP, and one-block equivalence: PASS
+MV/scalar input and all 110 parameter gradients: PASS
+rotations, translations, reflection: MV equivariance, scalar invariance PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+reference       7.401      7.612      7.661      7.829        261.1      2,088.6      4,177.2      6,140
+clifra          4.074      4.195      4.269      4.349        468.5      3,748.1      7,496.2      6,140
+speed ratio reference_median / clifra_median = 1.795
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+reference      45.501     48.469     49.777     52.138         40.2        321.4        642.9      6,140
+clifra         21.453     21.957     24.892     25.755         80.3        642.8      1,285.6      6,140
+speed ratio reference_median / clifra_median = 2.000
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+
+exit_code=0

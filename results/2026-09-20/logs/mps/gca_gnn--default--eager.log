@@ -1,0 +1,52 @@
+$ uv run --locked benchmark.py --model gca_gnn --device mps --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+torch-geometric: 2.8.0.post1
+reference source: Qualcomm GATr 6afc26f26b8fcf51136ae8c1d264a36e14b6e497; faithful GCA wrapper over cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad primitives
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: mps
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gca_gnn graphs=2, nodes/graph=16, edges/graph=64, in=4, out=4, node=8, message=8, mlp_hidden=16, mlp_hidden_layers=2, steps=3
+parameter counts: clifra=35,796, reference=35,796
+execution: eager, mode=both
+
+=== Correctness ===
+clifra: finite forward, finite backward PASS
+reference: finite forward, finite backward PASS
+convention roundtrip: PASS
+transferred whole GCA-GNN: PASS (max=1.601e-10)
+transferred message/update MLPs: PASS (max=1.043e-07)
+transferred GCA-GNN layers: PASS (max=4.470e-08)
+corresponding input and parameter gradients: PASS
+equivariance: not asserted; GCA-GNN is not constructed as an E(3)-equivariant architecture
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s  output MV/s     params
+clifra          2.939      5.309      9.177     16.782        217.9      3,486.8     13,947.4     13,947.4     35,796
+reference      24.675     27.609     34.800     42.481         57.5        919.5      3,678.2      3,678.2     35,796
+speed ratio reference_median / clifra_median = 3.792
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s  output MV/s     params
+clifra         44.020     46.896     49.366     54.444         40.5        648.2      2,592.9      2,592.9     35,796
+reference      52.885     60.451     65.760     72.303         30.4        486.6      1,946.5      1,946.5     35,796
+speed ratio reference_median / clifra_median = 1.332
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/cliffordlayers/basisbladeorder.py:116: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /Users/runner/work/pytorch/pytorch/aten/src/ATen/Context.cpp:855.)
+  return torch.sparse_coo_tensor(indices=coords, values=mult_table_vals, size=(n, n, n))
+
+exit_code=0

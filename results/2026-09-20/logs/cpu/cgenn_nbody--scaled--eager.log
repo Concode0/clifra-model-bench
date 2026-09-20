@@ -1,0 +1,51 @@
+$ uv run --locked benchmark.py --model cgenn --variant nbody --batch 3 --nodes 6 --hidden-features 16 --layers 3 --device cpu --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.13 (/Users/haro/works/clifra-model-bench/.venv/bin/python3)
+PyTorch: 2.14.0
+Clifra: 2.0.3
+Clifra source: /Users/haro/works/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 459c6c09f30625a6a214ee610e9bcfc4cd84543e
+platform: macOS-26.6.2-arm64-arm-64bit / arm64
+macOS: 26.6.2
+device: cpu
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=nbody, signature=(3,0), batch=3, nodes/graph=6, options={'hidden_features': 16, 'n_layers': 3}, eval=True
+parameter counts: reference=46,977, clifra=46,977
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (46,977 scalars; 124 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 124 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      10.451     10.639     10.890     10.989        275.5      1,652.9      8,264.4     46,977
+clifra          5.030      5.108      5.231      5.421        573.6      3,441.3     17,206.6     46,977
+speed ratio reference_median / clifra_median = 2.082
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      20.016     20.231     20.428     20.584        146.9        881.2      4,405.8     46,977
+clifra         12.072     12.283     12.366     12.475        242.6      1,455.5      7,277.7     46,977
+speed ratio reference_median / clifra_median = 1.652
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0
