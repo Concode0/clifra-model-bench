@@ -132,6 +132,10 @@ def _tables(log: str) -> dict[str, dict[str, str]]:
             continue
         if phase and (match := re.match(r"^(reference|clifra)\s+\S+\s+\S+\s+(\d+\.\d+)", line)):
             tables[phase][match.group(1)] = match.group(2)
+        elif phase and (
+            match := re.match(r"^speed ratio reference_median / clifra_median = (\d+\.\d+)", line)
+        ):
+            tables[phase]["ratio"] = match.group(1)
     return tables
 
 
@@ -163,6 +167,9 @@ def main() -> None:
     parser.add_argument("--iters", type=int, default=20)
     parser.add_argument("--cpu-threads", type=int, default=4)
     parser.add_argument("--cpu-interop-threads", type=int, default=4)
+    parser.add_argument(
+        "--summarize-only", action="store_true", help="rebuild the document from existing raw logs"
+    )
     args = parser.parse_args()
     if min(args.iters, args.cpu_threads, args.cpu_interop_threads) <= 0 or args.warmup < 0:
         parser.error("iterations and thread counts must be positive; warmup must be nonnegative")
@@ -170,18 +177,27 @@ def main() -> None:
     output = args.output_dir.resolve()
     logs = output / "logs" / args.device
     logs.mkdir(parents=True, exist_ok=True)
-    commit = _capture(["git", "rev-parse", "HEAD"])
+    document = output / f"{args.device}.md"
+    if args.summarize_only:
+        if not document.exists():
+            parser.error(f"missing existing summary: {document}")
+        previous = document.read_text().splitlines()
+        started, source = previous[2:4]
+    else:
+        commit = _capture(["git", "rev-parse", "HEAD"])
+        started = f"Run started: {datetime.now(timezone.utc).isoformat(timespec='seconds')}."
+        source = f"Source commit: `{commit}`. Host: `{platform.platform()}`."
     lines = [
         f"# {args.device.upper()} paired-model sweep",
         "",
-        f"Run started: {datetime.now(timezone.utc).isoformat(timespec='seconds')}.",
-        f"Source commit: `{commit}`. Host: `{platform.platform()}`.",
+        started,
+        source,
         f"Device: `{args.device}`; float32; seed 0; CPU intra-op/inter-op threads: {args.cpu_threads}/{args.cpu_interop_threads}.",
         f"Each command uses `uv run --locked benchmark.py`, {args.warmup} warmup and {args.iters} timed iterations per mode.",
         "The default is the repository's small correctness workload. The scaled setting changes the listed architecture or workload flags.",
         "Latency is median milliseconds. Ratio is reference median / Clifra median; greater than 1 favors Clifra.",
         "Forward uses inference mode; forward+backward includes a fresh forward, loss, and backward.",
-        "Compiled latency is shown only for backends whose compiled output and gradients pass eager comparison. Graph notation is graphs/breaks; ⚠ marks a recompile-limit warning.",
+        "Compiled latency is shown only after output validation, plus gradient validation for forward+backward. Graph notation is graphs/breaks; ⚠ marks a recompile-limit warning.",
         "These are single-host sweep measurements, not cross-device speed ratios. Raw logs retain full provenance, correctness output, latency distributions, and throughput.",
         "",
     ]
@@ -233,34 +249,30 @@ def main() -> None:
                     f"[{index}/{total}] {args.device} {case.name} {workload} {execution}",
                     flush=True,
                 )
-                result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
-                path.write_text(
-                    "$ "
-                    + " ".join(command)
-                    + "\n\n"
-                    + result.stdout
-                    + result.stderr
-                    + f"\nexit_code={result.returncode}\n"
-                )
-                reported = _tables(result.stdout)
+                if args.summarize_only:
+                    log = path.read_text()
+                    exit_match = re.search(r"\nexit_code=(\d+)\s*$", log)
+                    if exit_match is None:
+                        raise ValueError(f"missing exit code in {path}")
+                    returncode = int(exit_match.group(1))
+                else:
+                    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
+                    returncode = result.returncode
+                    log = "$ " + " ".join(command) + "\n\n" + result.stdout + result.stderr
+                    path.write_text(log + f"\nexit_code={returncode}\n")
+                reported = _tables(log)
                 for phase in ("forward", "forward+backward"):
                     medians = reported.get(phase, {})
                     reference = medians.get("reference", "—")
                     clifra = medians.get("clifra", "—")
-                    ratio = (
-                        f"{float(reference) / float(clifra):.3f}"
-                        if reference != "—" and clifra != "—"
-                        else "—"
-                    )
+                    ratio = medians.get("ratio", "—") if reference != "—" and clifra != "—" else "—"
                     capture, failures = (
-                        _compile_info(result.stdout, phase)
-                        if execution == "compiled"
-                        else ("—", [])
+                        _compile_info(log, phase) if execution == "compiled" else ("—", [])
                     )
                     notes.extend(f"{workload} {failure}" for failure in failures)
-                    if result.returncode != 0:
+                    if returncode != 0:
                         notes.append(
-                            f"{workload} {execution}: process exited {result.returncode}; inspect raw log"
+                            f"{workload} {execution}: process exited {returncode}; inspect raw log"
                         )
                     link = path.relative_to(output).as_posix()
                     lines.append(
@@ -271,8 +283,8 @@ def main() -> None:
             lines.append("Validation and compiler notes:")
             lines.extend(f"- {note}" for note in dict.fromkeys(notes))
             lines.append("")
-        (output / f"{args.device}.md").write_text("\n".join(lines) + "\n")
-    print(f"Wrote {output / (args.device + '.md')}", flush=True)
+        document.write_text("\n".join(lines) + "\n")
+    print(f"Wrote {document}", flush=True)
 
 
 if __name__ == "__main__":
