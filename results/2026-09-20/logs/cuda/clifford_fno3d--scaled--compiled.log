@@ -1,0 +1,68 @@
+$ uv run --locked benchmark.py --model clifford_fno3d --grid 20 --hidden-channels 4 --blocks 3 --modes 8 --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_fno3d g=(3,0), batch=1, grid=20^3, channels=1/1, hidden=4, blocks=3, modes=(8,8,8), norm=False, padding=2, boundary=vector+bivector
+parameter counts: reference=1,573,440, clifra=1,573,440
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+full and vector+bivector convention roundtrips: PASS
+parameter correspondence: PASS (1,573,440 scalars)
+3D Fourier pair/unpair: PASS
+3D spectral mode selection: PASS
+Fourier-space geometric-product kernel: PASS
+Maxwell encoder equivalence: PASS
+Maxwell decoder equivalence: PASS
+CliffordConv3d equivalence: PASS
+spectral convolution equivalence: PASS
+Fourier block equivalence: PASS
+spectral input and 1 parameter gradients: PASS
+whole-model output, input and 47 parameter gradients: PASS
+
+=== torch.compile preparation: forward ===
+reference: COMPILE FAILED: RuntimeError: CUDA driver error: invalid argument
+The CUDA driver logged these messages, which may provide useful details:
+Returning 1 (CUDA_ERROR_INVALID_VALUE) from cuPointerGetAttribute
+
+clifra: compile API=0.983 ms, first call=11924.466 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+clifra          2.852      2.863      2.869      2.874        348.6  2,788,750.3  1,573,440
+
+=== torch.compile preparation: forward+backward ===
+reference: COMPILE FAILED: RuntimeError: CUDA driver error: invalid argument
+The CUDA driver logged these messages, which may provide useful details:
+Returning 1 (CUDA_ERROR_INVALID_VALUE) from cuPointerGetAttribute
+
+clifra: compile API=0.960 ms, first call=31440.376 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s grid points/s     params
+clifra          6.887      6.934      6.971      7.011        143.5  1,147,603.0  1,573,440
+/workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/_inductor/lowering.py:2774: UserWarning: Torchinductor does not support code generation for complex operators. Performance may be worse than eager.
+  warnings.warn(
+E0920 11:50:01.389000 10017 .venv/lib/python3.12/site-packages/torch/_inductor/runtime/triton_heuristics.py:1544] Failed during launch triton_poi_fused_cat_mul_neg_select_22 with config: XBLOCK: 1024, num_warps: 4, num_ctas: 1, num_stages: 1, maxnreg: None (num_warps=4, num_stages=1, kwargs={'XBLOCK': 1024})
+E0920 11:50:42.575000 10017 .venv/lib/python3.12/site-packages/torch/_inductor/runtime/triton_heuristics.py:1544] Failed during launch triton_poi_fused_mul_neg_select_51 with config: XBLOCK: 512, num_warps: 4, num_ctas: 1, num_stages: 1, maxnreg: None (num_warps=4, num_stages=1, kwargs={'XBLOCK': 512})
+
+exit_code=0

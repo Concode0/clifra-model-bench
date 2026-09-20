@@ -1,0 +1,63 @@
+$ uv run --locked benchmark.py --model gca_gnn --graphs 2 --nodes 32 --edges 128 --node-channels 16 --message-channels 16 --mlp-hidden-channels 32 --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+torch-geometric: 2.8.0.post1
+reference source: Qualcomm GATr 6afc26f26b8fcf51136ae8c1d264a36e14b6e497; faithful GCA wrapper over cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad primitives
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gca_gnn graphs=2, nodes/graph=32, edges/graph=128, in=4, out=4, node=16, message=16, mlp_hidden=32, mlp_hidden_layers=2, steps=3
+parameter counts: clifra=131,484, reference=131,484
+execution: compiled, mode=both
+
+=== Correctness ===
+clifra: finite forward, finite backward PASS
+reference: finite forward, finite backward PASS
+convention roundtrip: PASS
+transferred whole GCA-GNN: PASS (max=6.548e-11)
+transferred message/update MLPs: PASS (max=5.588e-08)
+transferred GCA-GNN layers: PASS (max=4.470e-08)
+corresponding input and parameter gradients: PASS
+equivariance: not asserted; GCA-GNN is not constructed as an E(3)-equivariant architecture
+
+=== torch.compile preparation: forward ===
+clifra: compile API=9251.365 ms, first call=56638.935 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+reference: compile API=1.564 ms, first call=25321.579 ms, output check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s  output MV/s     params
+clifra          2.091      2.120      2.129      2.139        939.3     30,057.7    120,230.8    120,230.8    131,484
+reference       3.865      3.909      3.923      3.934        509.8     16,314.4     65,257.7     65,257.7    131,484
+speed ratio reference_median / clifra_median = 1.842
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+clifra: compile API=1.066 ms, first call=22858.049 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+reference: compile API=1.286 ms, first call=36808.321 ms, output/gradients check=PASS, graphs=1, graph_breaks=0, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s  output MV/s     params
+clifra          7.384      7.448      7.521      7.647        265.9      8,508.9     34,035.8     34,035.8    131,484
+reference      11.286     11.339     11.461     11.652        174.5      5,584.3     22,337.0     22,337.0    131,484
+speed ratio reference_median / clifra_median = 1.524
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/jit/_script.py:1491: FutureWarning: `torch.jit.script` is deprecated. Please switch to `torch.compile` or `torch.export`.
+  warnings.warn(
+/workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/cliffordlayers/basisbladeorder.py:116: UserWarning: Sparse invariant checks are implicitly disabled. Memory errors (e.g. SEGFAULT) will occur when operating on a sparse tensor which violates the invariants, but checks incur performance overhead. To silence this warning, explicitly opt in or out. See `torch.sparse.check_sparse_tensor_invariants.__doc__` for guidance.  (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/Context.cpp:848.)
+  return torch.sparse_coo_tensor(indices=coords, values=mult_table_vals, size=(n, n, n))
+
+exit_code=0

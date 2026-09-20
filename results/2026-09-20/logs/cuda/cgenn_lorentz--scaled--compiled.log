@@ -1,0 +1,67 @@
+$ uv run --locked benchmark.py --model cgenn --variant lorentz --batch 3 --nodes 6 --hidden-features 16 --hidden-scalar-features 8 --decoder-features 16 --layers 3 --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=lorentz, signature=(1,3), batch=3, nodes/graph=6, options={'hidden_features_x': 16, 'hidden_features_h': 8, 'n_layers': 3, 'decoder_features': 16}, eval=True
+parameter counts: reference=228,488, clifra=228,488
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (228,488 scalars; 95 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 95 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== torch.compile preparation: forward ===
+reference: compile API=7768.664 ms, first call=101018.531 ms, output check=PASS, graphs=20, graph_breaks=17, recompile_limit_warning=False
+clifra: compile API=0.973 ms, first call=30262.242 ms, output check=PASS, graphs=14, graph_breaks=7, recompile_limit_warning=False
+
+=== forward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      11.303     11.371     11.470     11.656        261.5      1,569.3      7,846.4    228,488
+clifra          7.918      7.999      8.125      8.193        369.2      2,215.4     11,077.1    228,488
+speed ratio reference_median / clifra_median = 1.412
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== torch.compile preparation: forward+backward ===
+reference: compile API=1.092 ms, first call=67903.037 ms, output/gradients check=PASS, graphs=17, graph_breaks=13, recompile_limit_warning=True
+clifra: compile API=1.292 ms, first call=40729.298 ms, output/gradients check=PASS, graphs=11, graph_breaks=6, recompile_limit_warning=False
+
+=== forward+backward (compiled) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      28.890     29.652     30.007     30.335        100.0        599.9      2,999.3    228,488
+clifra         25.563     26.005     26.290     26.485        114.1        684.7      3,423.4    228,488
+speed ratio reference_median / clifra_median = 1.141
+> 1.0 = Clifra faster; < 1.0 = reference faster
+W0920 12:32:04.651000 17433 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] torch._dynamo hit config.recompile_limit (8)
+W0920 12:32:04.651000 17433 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8]    function: 'forward' (/workspace/clifra-model-bench/models/cgenn/reference.py:145)
+W0920 12:32:04.651000 17433 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8]    last reason: 1/7: tensor 'self._parameters['weight']' size mismatch at index 0. expected 16, actual 33. Guard failed on a parameter, consider using torch._dynamo.config.force_parameter_static_shapes = False to allow dynamism on parameters.
+W0920 12:32:04.651000 17433 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0920 12:32:04.651000 17433 .venv/lib/python3.12/site-packages/torch/_dynamo/convert_frame.py:2008] [1/8] To diagnose recompilation issues, see https://docs.pytorch.org/docs/main/user_guide/torch_compiler/compile/programming_model.recompilation.html
+
+exit_code=0

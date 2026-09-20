@@ -1,0 +1,54 @@
+$ uv run --locked benchmark.py --model cgenn --variant nbody --batch 3 --nodes 6 --hidden-features 16 --layers 3 --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+reference source: Ruhe, Brandstetter, Forré, Clifford Group Equivariant Neural Networks; DavidRuhe/clifford-group-equivariant-neural-networks 08f2f2cbf5f7a723ea8539daf9f20a24cde73b1b (execution-only port; upstream b() indentation repaired)
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: cgenn variant=nbody, signature=(3,0), batch=3, nodes/graph=6, options={'hidden_features': 16, 'n_layers': 3}, eval=True
+parameter counts: reference=46,977, clifra=46,977
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis roundtrip and per-grade layouts: PASS
+parameter correspondence: PASS (46,977 scalars; 124 tensors)
+MVLinear: output/input/all parameter gradients and reflections PASS
+MVLinear shared: output/input/all parameter gradients and reflections PASS
+NormalizationLayer: output/input/all parameter gradients and reflections PASS
+MVSiLU: output/input/all parameter gradients and reflections PASS
+MVLayerNorm: output/input/all parameter gradients and reflections PASS
+SteerableGP: output/input/all parameter gradients and reflections PASS
+FullyConnectedGP: output/input/all parameter gradients and reflections PASS
+whole-model output, input and 124 parameter tensor gradients: PASS
+two reflections and one composed Clifford-group action: PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference      57.066     57.445     57.596     57.870         52.1        312.5      1,562.6     46,977
+clifra         24.427     24.663     24.918     25.112        120.4        722.4      3,611.8     46,977
+speed ratio reference_median / clifra_median = 2.311
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms      graphs/s      nodes/s      edges/s     params
+reference     136.859    137.300    138.365    139.133         21.7        130.1        650.5     46,977
+clifra         77.971     79.055     79.536     80.383         37.7        226.3      1,131.6     46,977
+speed ratio reference_median / clifra_median = 1.740
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+exit_code=0

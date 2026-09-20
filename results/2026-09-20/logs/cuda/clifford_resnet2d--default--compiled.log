@@ -1,0 +1,63 @@
+$ uv run --locked benchmark.py --model clifford_resnet2d --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4 --compile
+
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+cliffordlayers: 0.1.3.dev7+g74799cf45
+reference source: Brandstetter et al., Clifford Neural Layers for PDE Modeling; Microsoft cliffordlayers 74799cf4588a065916305bfcf2f030d84918f0ad
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: clifford_resnet2d g=(2,0), batch=1, grid=32x32, channels=1/1, hidden=4, blocks=2, norm=True, rotation=False, padding=9
+parameter counts: reference=2,736, clifra=2,736
+execution: compiled, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+basis/convention roundtrip: PASS (identical [1,e1,e2,e12] order)
+parameter correspondence: PASS (2,736 scalars)
+encoder equivalence: PASS
+decoder equivalence: PASS
+conv2d equivalence: PASS
+basic block equivalence: PASS
+whole-model output, input and 37 parameter gradients: PASS
+
+=== torch.compile preparation: forward ===
+reference: COMPILE FAILED: AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 2664 / 3072 (86.7%)
+Greatest absolute difference: 0.009430229663848877 at index (0, 0, 31, 27, 1) (up to 0.0001 allowed)
+Greatest relative difference: 8.267768859863281 at index (0, 0, 7, 9, 2) (up to 0.001 allowed)
+clifra: COMPILE FAILED: AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 2669 / 3072 (86.9%)
+Greatest absolute difference: 0.009160071611404419 at index (0, 0, 7, 8, 2) (up to 0.0001 allowed)
+Greatest relative difference: 8.131356239318848 at index (0, 0, 7, 9, 2) (up to 0.001 allowed)
+No backend compiled successfully for forward; eager correctness remains valid.
+
+=== torch.compile preparation: forward+backward ===
+reference: COMPILE FAILED: AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 2657 / 3072 (86.5%)
+Greatest absolute difference: 0.009129881858825684 at index (0, 0, 31, 27, 1) (up to 0.0001 allowed)
+Greatest relative difference: 8.18725299835205 at index (0, 0, 7, 9, 2) (up to 0.001 allowed)
+clifra: COMPILE FAILED: AssertionError: Tensor-likes are not close!
+
+Mismatched elements: 411 / 3072 (13.4%)
+Greatest absolute difference: 0.0009097009897232056 at index (0, 0, 6, 6, 1) (up to 0.0001 allowed)
+Greatest relative difference: 0.39439791440963745 at index (0, 0, 31, 14, 2) (up to 0.001 allowed)
+No backend compiled successfully for forward+backward; eager correctness remains valid.
+
+exit_code=0

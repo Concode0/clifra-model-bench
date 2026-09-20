@@ -1,0 +1,57 @@
+$ uv run --locked benchmark.py --model gatr --device cuda --backend both --mode both --warmup 5 --iters 20 --cpu-threads 4 --cpu-interop-threads 4
+
+attention backend: PyTorch SDPA (reference and Clifra)
+=== Provenance ===
+Python: 3.12.14 (/workspace/clifra-model-bench/.venv/bin/python)
+PyTorch: 2.14.0+cu130
+Clifra: 2.0.3
+Clifra source: /workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/clifra/__init__.py
+Clifra git commit: installed package
+gatr: 1.4.2
+einops: 0.8.2
+opt-einsum: 3.4.0
+xformers: not installed
+reference source: Qualcomm GATr commit 6afc26f26b8fcf51136ae8c1d264a36e14b6e497 (installed official package; changelog 1.4.3, package __version__ 1.4.2)
+benchmark git commit: 38d8296c3fd39c77c23a3765ef112e703c8a6de7
+platform: Linux-6.8.0-117-generic-x86_64-with-glibc2.35 / x86_64
+device: cuda
+CUDA device: NVIDIA RTX PRO 4000 Blackwell
+CUDA capability: (12, 0)
+PyTorch CUDA build: 13.0
+cuDNN: 92400
+parameter dtypes: torch.float32
+CPU intra-op threads: 4
+CPU inter-op threads: 4
+thread environment: unset
+model: gatr batch=2, items=8, MV=2/4/2, scalar=2/4/2, blocks=2, heads=2, attention=PyTorch SDPA
+parameter counts: reference=6,140, clifra=6,140
+execution: eager, mode=both
+
+=== Correctness ===
+reference: finite forward, finite backward PASS
+clifra: finite forward, finite backward PASS
+convention roundtrip: PASS
+full-model MV/scalar output equivalence: PASS
+primitive, Q/K/V, MLP, and one-block equivalence: PASS
+MV/scalar input and all 110 parameter gradients: PASS
+rotations, translations, reflection: MV equivariance, scalar invariance PASS
+
+=== forward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+reference       9.840      9.914      9.968     10.003        200.6      1,605.2      3,210.3      6,140
+clifra         11.772     11.929     12.013     12.036        166.5      1,331.9      2,663.7      6,140
+speed ratio reference_median / clifra_median = 0.830
+> 1.0 = Clifra faster; < 1.0 = reference faster
+
+=== forward+backward (eager) ===
+backend       min_ms     p25_ms  median_ms     p75_ms     samples/s     tokens/s  output MV/s     params
+reference      39.396     39.635     39.820     40.421         50.2        401.8        803.6      6,140
+clifra         35.098     35.369     35.725     36.153         56.0        447.9        895.7      6,140
+speed ratio reference_median / clifra_median = 1.115
+> 1.0 = Clifra faster; < 1.0 = reference faster
+/workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+/workspace/clifra-model-bench/.venv/lib/python3.12/site-packages/torch/serialization.py:2244: UserWarning: Validating sparse tensor invariants because weights_only=True; this is an O(nnz) scan per sparse tensor and may be slow for large checkpoints.
+  torch._utils._validate_loaded_sparse_tensors(weights_only=weights_only)
+
+exit_code=0
