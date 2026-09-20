@@ -29,7 +29,7 @@ class _PGAConjugateLinear(nn.Module):
         pairs = torch.triu_indices(8, 8)
         self.register_buffer("monomial_left", pairs[0], persistent=False)
         self.register_buffer("monomial_right", pairs[1], persistent=False)
-        # e123 is lane 14 in cliffordlayers and canonical blade 0b0111 here.
+        # Euclidean e123 has canonical blade index 0b0111.
         self.embedded_blade = 0b0111
         self.reset_parameters(norm_signs)
 
@@ -63,11 +63,15 @@ class _MultiVectorAct(nn.Module):
         super().__init__()
         self.agg = agg
         if agg == "linear":
-            self.conv = nn.Conv1d(channels, channels, kernel_size=16, groups=channels)
+            # One learned coefficient covector and bias per channel.
+            self.gate_weight = nn.Parameter(torch.empty(channels, 16))
+            self.gate_bias = nn.Parameter(torch.empty(channels))
+            nn.init.kaiming_uniform_(self.gate_weight, a=math.sqrt(5))
+            bound = 1 / math.sqrt(16)
+            nn.init.uniform_(self.gate_bias, -bound, bound)
         elif agg in {"sum", "mean"}:
-            # The source architecture sums null-first-oriented PGA coordinates.
-            # This covector is its exact expression on Clifra's canonical,
-            # null-last basis; coefficient tensors themselves remain canonical.
+            # Express the architecture's signed coordinate sum as a covector
+            # on the canonical PGA basis; coefficient tensors stay canonical.
             null_bit = 1 << 3
             signs = [
                 -1.0 if blade & null_bit and (blade ^ null_bit).bit_count() % 2 else 1.0
@@ -79,7 +83,8 @@ class _MultiVectorAct(nn.Module):
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         if self.agg == "linear":
-            gate = self.conv(inputs)
+            gate = (inputs * self.gate_weight).sum(dim=-1, keepdim=True)
+            gate = gate + self.gate_bias[..., None]
         else:
             gate = torch.sum(inputs * self.aggregate_form, dim=-1, keepdim=True)
             if self.agg == "mean":
@@ -102,6 +107,8 @@ class ClifraGCAMLP(nn.Module):
         hidden_channels: int,
         hidden_layers: int,
         act_agg: str = "linear",
+        flatten: bool = False,
+        items: int = 1,
     ) -> None:
         super().__init__()
         if hidden_layers <= 0:
@@ -111,6 +118,8 @@ class ClifraGCAMLP(nn.Module):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.flatten = flatten
+        self.items = items
         self.algebra = make_algebra(3, 0, 1)
         full = self.algebra.layout()
         action = self.algebra.layout((0, 2, 4))
@@ -118,7 +127,9 @@ class ClifraGCAMLP(nn.Module):
         norm_plan = self.algebra.plan_signature_norm_squared(input=action)
         norm_signs = norm_plan(torch.eye(action.dim)).squeeze(-1)
 
-        widths = [in_channels, *([hidden_channels] * hidden_layers), out_channels]
+        first = items * in_channels if flatten else in_channels
+        last = items * out_channels if flatten else out_channels
+        widths = [first, *([hidden_channels] * hidden_layers), last]
         self.linears = nn.ModuleList(
             _PGAConjugateLinear(
                 source,
@@ -153,13 +164,21 @@ class ClifraGCAMLP(nn.Module):
         return torch.stack(lowered).reshape(36, 16 * 16)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        if inputs.shape[-2:] != (self.in_channels, 16):
-            raise ValueError(
-                f"expected (..., {self.in_channels}, 16), got {tuple(inputs.shape)}"
-            )
-        leading = inputs.shape[:-2]
-        values = inputs.reshape(-1, self.in_channels, 16)
+        if self.flatten:
+            if inputs.ndim != 4 or inputs.shape[1:] != (self.items, self.in_channels, 16):
+                raise ValueError(f"expected (batch, {self.items}, {self.in_channels}, 16)")
+            values = inputs.reshape(inputs.shape[0], self.items * self.in_channels, 16)
+        else:
+            if inputs.shape[-2:] != (self.in_channels, 16):
+                raise ValueError(
+                    f"expected (..., {self.in_channels}, 16), got {tuple(inputs.shape)}"
+                )
+            values = inputs
         values = self.linears[0](values)
         for activation, linear in zip(self.activations, self.linears[1:]):
             values = linear(activation(values))
-        return values.reshape(*leading, self.out_channels, 16)
+        return (
+            values.reshape(inputs.shape[0], self.items, self.out_channels, 16)
+            if self.flatten
+            else values
+        )

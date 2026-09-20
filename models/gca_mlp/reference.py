@@ -26,6 +26,8 @@ class ReferenceGCAMLP(nn.Module):
         hidden_channels: int,
         hidden_layers: int,
         act_agg: str = "linear",
+        flatten: bool = False,
+        items: int = 1,
     ) -> None:
         super().__init__()
         if hidden_layers <= 0:
@@ -35,8 +37,12 @@ class ReferenceGCAMLP(nn.Module):
 
         self.in_channels = in_channels
         self.out_channels = out_channels
+        self.flatten = flatten
+        self.items = items
         self.pga = CliffordAlgebra((0, 1, 1, 1))
-        widths = [in_channels, *([hidden_channels] * hidden_layers), out_channels]
+        first = items * in_channels if flatten else in_channels
+        last = items * out_channels if flatten else out_channels
+        widths = [first, *([hidden_channels] * hidden_layers), last]
         self.linears = nn.ModuleList(
             PGAConjugateLinear(
                 source,
@@ -64,13 +70,19 @@ class ReferenceGCAMLP(nn.Module):
         return module
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
-        if inputs.shape[-2:] != (self.in_channels, 16):
-            raise ValueError(
-                f"expected (..., {self.in_channels}, 16), got {tuple(inputs.shape)}"
-            )
-        leading = inputs.shape[:-2]
-        values = inputs.reshape(-1, self.in_channels, 16)
+        if self.flatten:
+            if inputs.ndim != 4 or inputs.shape[1:] != (self.items, self.in_channels, 16):
+                raise ValueError(f"expected (batch, {self.items}, {self.in_channels}, 16)")
+            values = inputs.reshape(inputs.shape[0], self.items * self.in_channels, 16)
+            output_shape = (inputs.shape[0], self.items, self.out_channels, 16)
+        else:
+            if inputs.shape[-2:] != (self.in_channels, 16):
+                raise ValueError(
+                    f"expected (..., {self.in_channels}, 16), got {tuple(inputs.shape)}"
+                )
+            values = inputs.reshape(-1, self.in_channels, 16)
+            output_shape = (*inputs.shape[:-2], self.out_channels, 16)
         values = self.linears[0](values)
         for activation, linear in zip(self.activations, self.linears[1:]):
             values = linear(activation(values))
-        return values.reshape(*leading, self.out_channels, 16)
+        return values.reshape(output_shape)
